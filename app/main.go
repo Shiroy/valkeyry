@@ -27,9 +27,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	_, err = client.Write([]byte("+PONG\r\n"))
-	if err != nil {
-		fmt.Println("Failed to write to client: ", err.Error())
-		os.Exit(1)
+	for {
+		// Read from the client
+		_, err := client.Read(make([]byte, 1024))
+		if err != nil {
+			fmt.Println("Error reading from client: ", err.Error())
+			os.Exit(1)
+		}
+
+		_, err = client.Write([]byte("+PONG\r\n"))
+		if err != nil {
+			fmt.Println("Failed to write to client: ", err.Error())
+			os.Exit(1)
+		}
 	}
 }
