@@ -43,6 +43,7 @@ func handleClient(client net.Conn) {
 		cmds, err := ParseResp(reader)
 		if err != nil {
 			fmt.Println(err)
+			return
 		}
 
 		switch cmds[0] {
@@ -53,11 +54,17 @@ func handleClient(client net.Conn) {
 				fmt.Println(err)
 			}
 			break
-		default:
+		case "PING":
 			_, err = client.Write([]byte("+PONG\r\n"))
 			if err != nil {
 				fmt.Println("Failed to write to client: ", err.Error())
 				return
+			}
+			break
+		default:
+			_, err := client.Write([]byte("Unknown command: " + cmds[0] + "\r\n"))
+			if err != nil {
+				fmt.Println("Failed to write to client: ", err.Error())
 			}
 			break
 		}
