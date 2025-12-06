@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"os"
@@ -33,18 +34,32 @@ func main() {
 }
 
 func handleClient(client net.Conn) {
+	defer client.Close()
+
+	// Read from the client
+	reader := bufio.NewReader(client)
+
 	for {
-		// Read from the client
-		_, err := client.Read(make([]byte, 1024))
+		cmds, err := ParseResp(reader)
 		if err != nil {
-			fmt.Println("Error reading from client: ", err.Error())
-			return
+			fmt.Println(err)
 		}
 
-		_, err = client.Write([]byte("+PONG\r\n"))
-		if err != nil {
-			fmt.Println("Failed to write to client: ", err.Error())
-			return
+		switch cmds[0] {
+		case "ECHO":
+			word := cmds[1]
+			_, err := client.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(word), word)))
+			if err != nil {
+				fmt.Println(err)
+			}
+			break
+		default:
+			_, err = client.Write([]byte("+PONG\r\n"))
+			if err != nil {
+				fmt.Println("Failed to write to client: ", err.Error())
+				return
+			}
+			break
 		}
 	}
 }
