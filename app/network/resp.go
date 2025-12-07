@@ -1,14 +1,27 @@
-package main
+package network
 
 import (
 	"bufio"
 	"errors"
 	"fmt"
+	"net"
 	"strconv"
 )
 
-func ParseResp(reader *bufio.Reader) ([]string, error) {
-	val, err := reader.Peek(1)
+type RedisConnection struct {
+	socket net.Conn
+	reader *bufio.Reader
+}
+
+func NewRedisConnection(socket net.Conn) *RedisConnection {
+	return &RedisConnection{
+		socket: socket,
+		reader: bufio.NewReader(socket),
+	}
+}
+
+func (c *RedisConnection) ParseResp() ([]string, error) {
+	val, err := c.reader.Peek(1)
 
 	if err != nil {
 		return nil, err
@@ -16,7 +29,7 @@ func ParseResp(reader *bufio.Reader) ([]string, error) {
 
 	switch val[0] {
 	case '*':
-		cmd, err := ParseArray(reader)
+		cmd, err := c.parseArray()
 		if err != nil {
 			return nil, err
 		}
@@ -26,8 +39,8 @@ func ParseResp(reader *bufio.Reader) ([]string, error) {
 	}
 }
 
-func ParseArray(reader *bufio.Reader) ([]string, error) {
-	val, err := reader.ReadByte()
+func (c *RedisConnection) parseArray() ([]string, error) {
+	val, err := c.reader.ReadByte()
 
 	if err != nil {
 		return nil, err
@@ -37,13 +50,13 @@ func ParseArray(reader *bufio.Reader) ([]string, error) {
 		return nil, fmt.Errorf("invalid starting byte for array. Got '%q', expected '*'", val)
 	}
 
-	size, err := ParseInteger(reader)
+	size, err := c.parseInteger()
 	if err != nil {
 		return nil, err
 	}
 
 	fmt.Println("Array size:", size)
-	err = ParseSeparator(reader)
+	err = c.parseSeparator()
 	if err != nil {
 		return nil, err
 	}
@@ -52,14 +65,14 @@ func ParseArray(reader *bufio.Reader) ([]string, error) {
 	array := make([]string, 0, size)
 
 	for i := 0; i < size; i++ {
-		next, err := reader.Peek(1)
+		next, err := c.reader.Peek(1)
 		if err != nil {
 			return nil, err
 		}
 
 		switch next[0] {
 		case '$':
-			value, err := ParseString(reader)
+			value, err := c.parseString()
 			if err != nil {
 				return nil, err
 			}
@@ -73,9 +86,9 @@ func ParseArray(reader *bufio.Reader) ([]string, error) {
 	return array, nil
 }
 
-func ParseString(reader *bufio.Reader) (value string, err error) {
+func (c *RedisConnection) parseString() (value string, err error) {
 	// Read '$'
-	val, err := reader.ReadByte()
+	val, err := c.reader.ReadByte()
 	if err != nil {
 		return "", err
 	}
@@ -84,12 +97,12 @@ func ParseString(reader *bufio.Reader) (value string, err error) {
 		return "", fmt.Errorf("invalid starting byte for string. Got '%q', expected '$'", val)
 	}
 
-	size, err := ParseInteger(reader)
+	size, err := c.parseInteger()
 	if err != nil {
 		return "", err
 	}
 
-	err = ParseSeparator(reader)
+	err = c.parseSeparator()
 	if err != nil {
 		return "", err
 	}
@@ -97,7 +110,7 @@ func ParseString(reader *bufio.Reader) (value string, err error) {
 	buf := make([]byte, 0, size)
 
 	for i := 0; i < size; i++ {
-		c, err := reader.ReadByte()
+		c, err := c.reader.ReadByte()
 		if err != nil {
 			return "", err
 		}
@@ -105,7 +118,7 @@ func ParseString(reader *bufio.Reader) (value string, err error) {
 		buf = append(buf, c)
 	}
 
-	err = ParseSeparator(reader)
+	err = c.parseSeparator()
 	if err != nil {
 		return "", err
 	}
@@ -113,11 +126,11 @@ func ParseString(reader *bufio.Reader) (value string, err error) {
 	return string(buf), nil
 }
 
-func ParseInteger(reader *bufio.Reader) (int, error) {
+func (c *RedisConnection) parseInteger() (int, error) {
 	buf := make([]byte, 0, 64)
 
 	for {
-		next, err := reader.Peek(1)
+		next, err := c.reader.Peek(1)
 		if err != nil {
 			return 0, err
 		}
@@ -128,7 +141,7 @@ func ParseInteger(reader *bufio.Reader) (int, error) {
 
 		buf = append(buf, next[0])
 
-		_, err = reader.ReadByte()
+		_, err = c.reader.ReadByte()
 		if err != nil {
 			return 0, err
 		}
@@ -142,13 +155,13 @@ func ParseInteger(reader *bufio.Reader) (int, error) {
 	return val, nil
 }
 
-func ParseSeparator(reader *bufio.Reader) error {
-	first, err := reader.ReadByte()
+func (c *RedisConnection) parseSeparator() error {
+	first, err := c.reader.ReadByte()
 	if err != nil {
 		return err
 	}
 
-	second, err := reader.ReadByte()
+	second, err := c.reader.ReadByte()
 	if err != nil {
 		return err
 	}
@@ -158,4 +171,15 @@ func ParseSeparator(reader *bufio.Reader) error {
 	}
 
 	return nil
+}
+
+func (c *RedisConnection) SendString(value string) error {
+	_, err := c.socket.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)))
+
+	return err
+}
+
+func (c *RedisConnection) SendPong() error {
+	_, err := c.socket.Write([]byte("+PONG\r\n"))
+	return err
 }

@@ -1,10 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"net"
 	"os"
+
+	"github.com/codecrafters-io/redis-starter-go/app/network"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
@@ -36,11 +37,10 @@ func main() {
 func handleClient(client net.Conn) {
 	defer client.Close()
 
-	// Read from the client
-	reader := bufio.NewReader(client)
+	connection := network.NewRedisConnection(client)
 
 	for {
-		cmds, err := ParseResp(reader)
+		cmds, err := connection.ParseResp()
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -49,13 +49,13 @@ func handleClient(client net.Conn) {
 		switch cmds[0] {
 		case "ECHO":
 			word := cmds[1]
-			_, err := client.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(word), word)))
+			err := connection.SendString(word)
 			if err != nil {
 				fmt.Println(err)
 			}
 			break
 		case "PING":
-			_, err = client.Write([]byte("+PONG\r\n"))
+			err = connection.SendPong()
 			if err != nil {
 				fmt.Println("Failed to write to client: ", err.Error())
 				return
