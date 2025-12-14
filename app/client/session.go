@@ -1,4 +1,4 @@
-package network
+package client
 
 import (
 	"bufio"
@@ -8,19 +8,19 @@ import (
 	"strconv"
 )
 
-type RedisConnection struct {
+type Session struct {
 	socket net.Conn
 	reader *bufio.Reader
 }
 
-func NewRedisConnection(socket net.Conn) *RedisConnection {
-	return &RedisConnection{
+func NewSession(socket net.Conn) *Session {
+	return &Session{
 		socket: socket,
 		reader: bufio.NewReader(socket),
 	}
 }
 
-func (c *RedisConnection) ParseResp() ([]string, error) {
+func (c *Session) ParseCommand() ([]string, error) {
 	val, err := c.reader.Peek(1)
 
 	if err != nil {
@@ -39,7 +39,7 @@ func (c *RedisConnection) ParseResp() ([]string, error) {
 	}
 }
 
-func (c *RedisConnection) parseArray() ([]string, error) {
+func (c *Session) parseArray() ([]string, error) {
 	val, err := c.reader.ReadByte()
 
 	if err != nil {
@@ -55,12 +55,10 @@ func (c *RedisConnection) parseArray() ([]string, error) {
 		return nil, err
 	}
 
-	fmt.Println("Array size:", size)
 	err = c.parseSeparator()
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Received array separator")
 
 	array := make([]string, 0, size)
 
@@ -86,7 +84,7 @@ func (c *RedisConnection) parseArray() ([]string, error) {
 	return array, nil
 }
 
-func (c *RedisConnection) parseString() (value string, err error) {
+func (c *Session) parseString() (value string, err error) {
 	// Read '$'
 	val, err := c.reader.ReadByte()
 	if err != nil {
@@ -126,7 +124,7 @@ func (c *RedisConnection) parseString() (value string, err error) {
 	return string(buf), nil
 }
 
-func (c *RedisConnection) parseInteger() (int, error) {
+func (c *Session) parseInteger() (int, error) {
 	buf := make([]byte, 0, 64)
 
 	for {
@@ -155,7 +153,7 @@ func (c *RedisConnection) parseInteger() (int, error) {
 	return val, nil
 }
 
-func (c *RedisConnection) parseSeparator() error {
+func (c *Session) parseSeparator() error {
 	first, err := c.reader.ReadByte()
 	if err != nil {
 		return err
@@ -173,13 +171,27 @@ func (c *RedisConnection) parseSeparator() error {
 	return nil
 }
 
-func (c *RedisConnection) SendString(value string) error {
+func (c *Session) SendSimpleString(value string) error {
+	_, err := c.socket.Write([]byte(fmt.Sprintf("+%s\r\n", value)))
+	return err
+}
+
+func (c *Session) SendString(value string) error {
 	_, err := c.socket.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)))
 
 	return err
 }
 
-func (c *RedisConnection) SendPong() error {
-	_, err := c.socket.Write([]byte("+PONG\r\n"))
+func (c *Session) SendPong() error {
+	return c.SendSimpleString("PONG")
+}
+
+func (c *Session) SendErrorString(msg string) error {
+	_, err := c.socket.Write([]byte(fmt.Sprintf("-%s\r\n", msg)))
+	return err
+}
+
+func (c *Session) SendNullBulkString() error {
+	_, err := c.socket.Write([]byte("$-1\r\n"))
 	return err
 }
