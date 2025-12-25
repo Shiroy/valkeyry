@@ -7,6 +7,7 @@ import (
 
 	"github.com/codecrafters-io/redis-starter-go/app/client"
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
+	"github.com/codecrafters-io/redis-starter-go/app/memory/values"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -30,9 +31,9 @@ func (s *Set) Handle(c *client.Session, command []string) error {
 	}
 
 	if input.expireAt != nil {
-		s.cache.SetWithExpiration(input.key, input.value, *input.expireAt)
+		s.cache.SetWithExpiration(input.key, values.NewValueString(input.value), *input.expireAt)
 	} else {
-		s.cache.Set(input.key, input.value)
+		s.cache.Set(input.key, values.NewValueString(input.value))
 	}
 
 	return c.SendSimpleString("OK")

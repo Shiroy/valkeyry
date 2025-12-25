@@ -195,3 +195,8 @@ func (c *Session) SendNullBulkString() error {
 	_, err := c.socket.Write([]byte("$-1\r\n"))
 	return err
 }
+
+func (c *Session) SendInteger(value int) error {
+	_, err := c.socket.Write([]byte(fmt.Sprintf(":%d\r\n", value)))
+	return err
+}

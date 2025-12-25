@@ -24,16 +24,16 @@ func NewCache(log *zap.Logger) *Cache {
 	}
 }
 
-func (c *Cache) Set(key string, value string) {
+func (c *Cache) Set(key string, value values.Value) {
 	c.entries[key] = cacheEntry{
-		value:    values.NewValueString(value),
+		value:    value,
 		expireAt: 0,
 	}
 }
 
-func (c *Cache) SetWithExpiration(key string, value string, expireAt int64) {
+func (c *Cache) SetWithExpiration(key string, value values.Value, expireAt int64) {
 	c.entries[key] = cacheEntry{
-		value:    values.NewValueString(value),
+		value:    value,
 		expireAt: expireAt,
 	}
 }

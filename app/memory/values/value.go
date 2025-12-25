@@ -1,5 +1,7 @@
 package values
 
+import "container/list"
+
 //go:generate stringer -type=ValueKind
 
 type ValueKind int
@@ -15,10 +17,17 @@ type Value interface {
 }
 
 type ValueList struct {
+	data *list.List
 }
 
 func (v ValueList) Kind() ValueKind {
 	return ValueKindList
+}
+
+func NewValueList(data *list.List) *ValueList {
+	return &ValueList{
+		data: data,
+	}
 }
 
 type ValueString struct {

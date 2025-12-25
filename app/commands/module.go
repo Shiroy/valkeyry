@@ -16,5 +16,6 @@ var Module = fx.Module("commands",
 		AsCommand(NewPing),
 		AsCommand(NewSet),
 		AsCommand(NewGet),
+		AsCommand(NewRPush),
 	),
 )
