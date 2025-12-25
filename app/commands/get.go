@@ -3,6 +3,7 @@ package commands
 import (
 	"github.com/codecrafters-io/redis-starter-go/app/client"
 	"github.com/codecrafters-io/redis-starter-go/app/memory"
+	"github.com/codecrafters-io/redis-starter-go/app/memory/values"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -33,7 +34,13 @@ func (g *Get) Handle(c *client.Session, command []string) error {
 		return c.SendNullBulkString()
 	}
 
-	return c.SendString(value)
+	switch v := value.(type) {
+	case values.ValueString:
+		return c.SendString(v.Data)
+	default:
+		g.log.Debug("Unknown entry type.", zap.String("type", v.Kind().String()))
+		return c.SendNullBulkString()
+	}
 }
 
 func (g *Get) Mnemonic() string {
