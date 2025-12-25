@@ -11,12 +11,12 @@ import (
 type GetParams struct {
 	fx.In
 
-	Cache *memory.Cache
+	Cache memory.Cache
 	Log   *zap.Logger
 }
 
 type Get struct {
-	cache *memory.Cache
+	cache memory.Cache
 	log   *zap.Logger
 }
 

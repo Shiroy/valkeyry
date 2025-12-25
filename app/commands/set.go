@@ -14,12 +14,12 @@ import (
 
 type SetParams struct {
 	fx.In
-	Cache *memory.Cache
+	Cache memory.Cache
 	Log   *zap.Logger
 }
 
 type Set struct {
-	cache *memory.Cache
+	cache memory.Cache
 	log   *zap.Logger
 }
 
