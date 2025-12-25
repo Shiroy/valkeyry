@@ -29,8 +29,8 @@ func (v ValueString) Kind() ValueKind {
 	return ValueKindString
 }
 
-func NewValueString(value string) ValueString {
-	return ValueString{
+func NewValueString(value string) *ValueString {
+	return &ValueString{
 		Data: value,
 	}
 }

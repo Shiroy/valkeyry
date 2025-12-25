@@ -35,7 +35,7 @@ func (g *Get) Handle(c *client.Session, command []string) error {
 	}
 
 	switch v := value.(type) {
-	case values.ValueString:
+	case *values.ValueString:
 		return c.SendString(v.Data)
 	default:
 		g.log.Debug("Unknown entry type.", zap.String("type", v.Kind().String()))
