@@ -80,14 +80,12 @@ func SetInputFromCommand(command []string) (*SetInput, error) {
 				return nil, err
 			}
 			expireAt = &expire
-			break
 		case "PX":
 			expire, err := ParseNx(parser)
 			if err != nil {
 				return nil, err
 			}
 			expireAt = &expire
-			break
 		}
 	}
 

@@ -60,7 +60,7 @@ func (p *Parser) ReadLiteral(literal string, caseInsensitive bool) error {
 	}
 
 	if val != literal {
-		return errors.New(fmt.Sprintf("literal mismatch: expected '%s' found '%s'", literal, val))
+		return fmt.Errorf("literal mismatch: expected '%s' found '%s'", literal, val)
 	} else {
 		return nil
 	}
